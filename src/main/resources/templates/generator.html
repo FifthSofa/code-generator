@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Code Generator</title>
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <style type="text/css">
+
+        input {
+            border: 1px solid black;
+            font-size: 13px;
+        }
+
+        .background {
+            width: 80%;
+            height: auto;
+            margin: 0 auto;
+            padding: 1% 3%;
+            background-color: whitesmoke;
+        }
+
+        .background .main {
+            width: 100%;
+        }
+
+        .cut_line {
+            width: 100%;
+            border: 1px dashed lightskyblue;
+            margin: 20px auto;
+        }
+
+        .field_list table {
+            border-right: 1px solid black;
+            border-bottom: 1px solid black;
+            text-align: center;
+        }
+
+        .field_list table td {
+            border-left: 1px solid black;
+            border-top: 1px solid black;
+            width: 10%;
+            height: 28px;
+        }
+
+        .field_list_btn {
+            height: 30px;
+            margin: 10px 0;
+        }
+
+        .field_list_btn .add_field_btn {
+            width: 150px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 15px;
+        }
+
+        .generator_btn {
+            width: 200px;
+            text-align: center;
+            line-height: 25px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body th:onload="load()">
+<div class="background">
+    <div class="main">
+        <form action="#" th:action="@{/generate-code}" th:object="${formEntity}" method="post">
+
+            <H2 style="text-align: center">
+                Code Generator
+            </H2>
+
+            <div class="cut_line"></div>
+
+            <div>
+                <p style="font-weight: bold;">
+                    <span style="color: red">*</span>
+                    Table Name: <input th:field="${formEntity.tableName}" required/>
+                </p>
+                <p style="font-weight: bold;">
+                    <span style="color: red">*</span>
+                    Entity Name: <input th:field="${formEntity.entityName}" required/>
+                </p>
+            </div>
+
+            <div class="cut_line"></div>
+
+            <div>
+                <div class="field_list">
+                    <table>
+                        <thead>
+                        <tr>
+                            <td colspan="2" style="font-weight: bold;">Java</td>
+                            <td colspan="4" style="font-weight: bold;">DB</td>
+                            <td style="font-weight: bold;"> Operation</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;"><span style="color: red">*</span> Field Type</td>
+                            <td style="font-weight: bold;"><span style="color: red">*</span> Field Name</td>
+                            <td style="font-weight: bold;"><span style="color: red">*</span> DB Column</td>
+                            <td style="font-weight: bold;"><span style="color: red">*</span> DB Type</td>
+                            <td style="font-weight: bold;"> DB Not Null</td>
+                            <td style="font-weight: bold;"> DB Comment</td>
+                            <td style="font-weight: bold;"> Delete</td>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody">
+                        <!-- field list -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="field_list_btn">
+                    <input class="add_field_btn" type="button" value="+ Add Field" onclick="addField()">
+                </div>
+            </div>
+
+            <div class="cut_line"></div>
+
+            <div style="text-align: center">
+                <button type="submit">
+                    <p class="generator_btn">
+                        Generate Code
+                    </p>
+                </button>
+            </div>
+
+            <div class="cut_line"></div>
+
+            <div id="tips" hidden>
+                <span style="font-weight: bold;">Output path: src/main/java/com/sergio/out/...</span>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+
+    let index = 0;
+
+    function load() {
+        let entityFields = [[${formEntity.entityFields}]];
+
+        console.log(entityFields);
+
+        for (let num in entityFields) {
+            let reg = new RegExp(" ", "g");
+
+            let td_fieldType = document.createElement("td");
+            let fieldType = entityFields[num].fieldType.replace(reg, "&nbsp;");
+            td_fieldType.innerHTML = fieldTypeSelectTag(fieldType);
+
+            let td_fieldName = document.createElement("td");
+            let fieldName = entityFields[num].fieldName.replace(reg, "&nbsp;");
+            td_fieldName.innerHTML = "<input value='" + fieldName + "' id=\"entityFields" + index + ".fieldName\" name=\"entityFields[" + index + "].fieldName\" required />";
+
+            let td_dbColumn = document.createElement("td");
+            let dbColumn = entityFields[num].dbColumn.replace(reg, "&nbsp;");
+            td_dbColumn.innerHTML = "<input value='" + dbColumn + "' id=\"entityFields" + index + ".dbColumn\" name=\"entityFields[" + index + "].dbColumn\" required />";
+
+            let td_dbType = document.createElement("td");
+            let dbType = entityFields[num].dbType.replace(reg, "&nbsp;");
+            td_dbType.innerHTML = "<input value='" + dbType + "' id=\"entityFields" + index + ".dbType\" name=\"entityFields[" + index + "].dbType\" required />";
+
+            let td_notNull = document.createElement("td");
+            let notNull = entityFields[num].notNull;
+            if (notNull == "on") {
+                td_notNull.innerHTML = "<input type='checkbox' id=\"entityFields" + index + ".notNull\" name=\"entityFields[" + index + "].notNull\" checked />";
+            } else {
+                td_notNull.innerHTML = "<input type='checkbox' id=\"entityFields" + index + ".notNull\" name=\"entityFields[" + index + "].notNull\" />";
+            }
+
+            let td_comment = document.createElement("td");
+            let comment = entityFields[num].comment.replace(reg, "&nbsp;");
+            td_comment.innerHTML = "<input value='" + comment + "' id=\"entityFields" + index + ".comment\" name=\"entityFields[" + index + "].comment\" />";
+
+            addFieldWithTd(fieldName, td_fieldType, td_fieldName, td_dbColumn, td_dbType, td_notNull, td_comment);
+        }
+
+        if ([[${formEntity.initFlag}]] == 1) {
+            addField();
+            addField();
+        } else {
+            $("#tips").show();
+            alert("Success!!!");
+        }
+    }
+
+    function addField() {
+
+        let td_fieldType = document.createElement("td");
+        td_fieldType.innerHTML = fieldTypeSelectTag(null);
+
+        let td_fieldName = document.createElement("td");
+        td_fieldName.innerHTML = "<input id=\"entityFields" + index + ".fieldName\" name=\"entityFields[" + index + "].fieldName\" required />";
+
+        let td_dbColumn = document.createElement("td");
+        td_dbColumn.innerHTML = "<input id=\"entityFields" + index + ".dbColumn\" name=\"entityFields[" + index + "].dbColumn\" required />";
+
+        let td_dbType = document.createElement("td");
+        td_dbType.innerHTML = "<input id=\"entityFields" + index + ".dbType\" name=\"entityFields[" + index + "].dbType\" required />";
+
+        let td_notNull = document.createElement("td");
+        td_notNull.innerHTML = "<input type='checkbox' id=\"entityFields" + index + ".notNull\" name=\"entityFields[" + index + "].notNull\" />";
+
+        let td_comment = document.createElement("td");
+        td_comment.innerHTML = "<input id=\"entityFields" + index + ".comment\" name=\"entityFields[" + index + "].comment\" />";
+
+        addFieldWithTd(null, td_fieldType, td_fieldName, td_dbColumn, td_dbType, td_notNull, td_comment);
+    }
+
+    function addFieldWithTd(fieldName, td_fieldType, td_fieldName, td_dbColumn, td_dbType, td_notNull, td_comment) {
+
+        let editTable = document.getElementById("tbody");
+        let tr = document.createElement("tr");
+
+        let td100 = document.createElement("td");
+        let deleteFieldButton = document.createElement("input");
+        deleteFieldButton.type = "button";
+        deleteFieldButton.value = "Delete Field";
+        deleteFieldButton.setAttribute("onclick", "deleteField(this)");
+        if (fieldName == "id") {
+            deleteFieldButton.disabled = true;
+        }
+        td100.appendChild(deleteFieldButton);
+
+        tr.appendChild(td_fieldType);
+        tr.appendChild(td_fieldName);
+        tr.appendChild(td_dbColumn);
+        tr.appendChild(td_dbType);
+        tr.appendChild(td_notNull);
+        tr.appendChild(td_comment);
+        tr.appendChild(td100);
+
+        editTable.appendChild(tr);
+
+        index = index + 1;
+    }
+
+    function deleteField(obj) {
+        if (confirm("Confirm delete this field?")) {
+            $(obj).parents("tr").remove();
+        }
+    }
+
+    function fieldTypeSelectTag(fieldType) {
+
+        let stringSelected;
+        let integerSelected;
+        let longSelected;
+
+        switch (fieldType) {
+            case "String" :
+                stringSelected = "selected";
+                break;
+            case "Integer" :
+                integerSelected = "selected";
+                break;
+            case "Long" :
+                longSelected = "selected";
+                break;
+        }
+
+        let fieldTypeSelectTagHtml = "<select id=\"entityFields" + index + ".fieldType\" name=\"entityFields[" + index + "].fieldType\" >" +
+            "<option " + stringSelected + ">String</option>" +
+            "<option " + integerSelected + ">Integer</option>" +
+            "<option " + longSelected + ">Long</option>" +
+            "</select>";
+        return fieldTypeSelectTagHtml;
+    }
+
+</script>
+
+</body>
+</html>
